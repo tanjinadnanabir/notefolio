@@ -9,7 +9,6 @@ engine = create_engine(
     echo=settings.debug,
 )
 
-
 SessionLocal = sessionmaker(
     bind=engine,
     autoflush=False,

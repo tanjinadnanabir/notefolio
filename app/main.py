@@ -1,8 +1,11 @@
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from app.db.database import Base, engine
+# from app.db.database import Base, engine
 # from app.models import Folder, Note, User
+
+from app.api.v1.router import api_router
+from app.db.database import engine
 
 app = FastAPI(
     title="NoteFolio API",
@@ -15,6 +18,7 @@ app = FastAPI(
 # def create_tables():
 #     Base.metadata.create_all(bind=engine)
 
+app.include_router(api_router)
 
 @app.get("/")
 def root():

@@ -9,13 +9,18 @@ from app.schemas.auth import (
     RegisterRequest,
     TokenResponse,
     UserResponse,
+    RefreshTokenRequest,
 )
 from app.services.auth import (
     authenticate_user,
+    create_refresh_token,
     create_user,
     create_user_access_token,
+    get_refresh_token,
     get_user_by_email,
     get_user_by_username,
+    revoke_refresh_token,
+    validate_refresh_token,
 )
 
 
@@ -85,12 +90,96 @@ def login(
             },
         )
 
-    token = create_user_access_token(user)
+    access_token = create_user_access_token(
+        user
+    )
+
+    refresh_token = create_refresh_token(
+        db,
+        user,
+    )
 
     return TokenResponse(
-        access_token=token,
-        token_type="bearer",
+        access_token=access_token,
+        refresh_token=refresh_token,
     )
+    
+    
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+)
+def refresh_access_token(
+    token_data: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    refresh_token = get_refresh_token(
+        db,
+        token_data.refresh_token,
+    )
+
+    if refresh_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token.",
+        )
+
+    if not validate_refresh_token(
+        refresh_token
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token is expired or revoked.",
+        )
+
+    user = refresh_token.user
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user.",
+        )
+
+    revoke_refresh_token(
+        db,
+        refresh_token,
+    )
+
+    new_access_token = create_user_access_token(
+        user
+    )
+
+    new_refresh_token = create_refresh_token(
+        db,
+        user,
+    )
+
+    return TokenResponse(
+        access_token=new_access_token,
+        refresh_token=new_refresh_token,
+    )
+    
+    
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def logout(
+    token_data: RefreshTokenRequest,
+    db: Session = Depends(get_db),
+):
+    refresh_token = get_refresh_token(
+        db,
+        token_data.refresh_token,
+    )
+
+    if refresh_token is not None:
+        revoke_refresh_token(
+            db,
+            refresh_token,
+        )
+
+    return None
 
 
 @router.get(

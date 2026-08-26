@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import hashlib
+import secrets
+
 from pwdlib import PasswordHash
 
 from app.core.config import settings
@@ -44,3 +47,13 @@ def create_access_token(
         settings.secret_key,
         algorithm="HS256",
     )
+    
+    
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
+
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()

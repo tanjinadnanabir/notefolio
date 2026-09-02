@@ -66,8 +66,14 @@ class User(Base):
         nullable=False,
     )
 
-    notes: Mapped[list["Note"]] = relationship(
-        back_populates="owner",
+    # notes: Mapped[list["Note"]] = relationship(
+    #     back_populates="owner",
+    #     cascade="all, delete-orphan",
+    # )
+    
+    notes = relationship(
+        "Note",
+        back_populates="user",
         cascade="all, delete-orphan",
     )
 

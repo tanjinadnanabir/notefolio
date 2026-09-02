@@ -51,6 +51,11 @@ class Folder(Base):
         back_populates="folders",
     )
 
-    notes: Mapped[list["Note"]] = relationship(
+    # notes: Mapped[list["Note"]] = relationship(
+    #     back_populates="folder",
+    # )
+    
+    notes = relationship(
+        "Note",
         back_populates="folder",
     )

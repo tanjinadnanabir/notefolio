@@ -28,14 +28,19 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     String,
     Text,
     func,
+    Computed,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from sqlalchemy.dialects.postgresql import TSVECTOR
+
 from app.db.database import Base
 
+from app.models.tag import Tag
 
 class Note(Base):
     __tablename__ = "notes"
@@ -128,6 +133,30 @@ class Note(Base):
     folder = relationship(
         "Folder",
         back_populates="notes",
+    )
+    
+    tags = relationship(
+        "Tag",
+        secondary="note_tags",
+        back_populates="notes",
+    )
+    
+    search_vector: Mapped[str] = mapped_column(
+        TSVECTOR,
+        Computed(
+            "to_tsvector('english', "
+            "coalesce(title, '') || ' ' || "
+            "coalesce(content, ''))",
+            persisted=True,
+        ),
+    )
+    
+    __table_args__ = (
+        Index(
+            "ix_notes_search_vector",
+            "search_vector",
+            postgresql_using="gin",
+        ),
     )
     
 

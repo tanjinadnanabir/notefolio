@@ -5,6 +5,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 from app.models.note import Note
+from app.models.tag import Tag
+
 from app.schemas.note import NoteCreate, NoteUpdate
 
 from app.services.folder import get_folder
@@ -259,3 +261,33 @@ def permanently_delete_note(
 
     db.delete(note)
     db.commit()
+    
+    
+def add_tag_to_note(
+    db: Session,
+    note: Note,
+    tag: Tag,
+) -> Note:
+
+    if tag not in note.tags:
+        note.tags.append(tag)
+
+    db.commit()
+    db.refresh(note)
+
+    return note
+
+
+def remove_tag_from_note(
+    db: Session,
+    note: Note,
+    tag: Tag,
+) -> Note:
+
+    if tag in note.tags:
+        note.tags.remove(tag)
+
+    db.commit()
+    db.refresh(note)
+
+    return note

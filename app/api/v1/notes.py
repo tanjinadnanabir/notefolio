@@ -20,16 +20,19 @@ from app.schemas.note import (
     TrashNoteResponse,
 )
 from app.services.note import (
+    add_tag_to_note,
     create_note,
     get_deleted_note,
     get_note,
     list_notes,
     list_trash,
     permanently_delete_note,
+    remove_tag_from_note,
     restore_note,
     update_note,
     delete_note,
 )
+from app.services.tag import get_tag
 
 
 router = APIRouter(
@@ -294,3 +297,89 @@ def permanently_delete_existing_note(
     )
 
     return None
+
+
+@router.post(
+    "/{note_id}/tags/{tag_id}",
+    response_model=NoteResponse,
+)
+def add_note_tag(
+    note_id: uuid.UUID,
+    tag_id: uuid.UUID,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    note = get_note(
+        db,
+        note_id,
+        current_user.id,
+    )
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found.",
+        )
+
+    tag = get_tag(
+        db,
+        tag_id,
+        current_user.id,
+    )
+
+    if tag is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found.",
+        )
+
+    return add_tag_to_note(
+        db,
+        note,
+        tag,
+    )
+    
+    
+@router.delete(
+    "/{note_id}/tags/{tag_id}",
+    response_model=NoteResponse,
+)
+def remove_note_tag(
+    note_id: uuid.UUID,
+    tag_id: uuid.UUID,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    note = get_note(
+        db,
+        note_id,
+        current_user.id,
+    )
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Note not found.",
+        )
+
+    tag = get_tag(
+        db,
+        tag_id,
+        current_user.id,
+    )
+
+    if tag is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found.",
+        )
+
+    return remove_tag_from_note(
+        db,
+        note,
+        tag,
+    )

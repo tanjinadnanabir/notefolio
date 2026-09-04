@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-
+from app.schemas.tag import TagResponse
 
 class NoteCreate(BaseModel):
     title: str = Field(
@@ -64,6 +64,8 @@ class NoteResponse(BaseModel):
 
     color: str | None
     status: str
+
+    tags: list[TagResponse] = []
 
     created_at: datetime
     updated_at: datetime

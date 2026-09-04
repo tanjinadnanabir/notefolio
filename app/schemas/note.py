@@ -79,3 +79,7 @@ class NoteListResponse(BaseModel):
     page: int
     page_size: int
     pages: int
+    
+    
+class TrashNoteResponse(NoteResponse):
+    deleted_at: datetime

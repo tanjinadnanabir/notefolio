@@ -77,8 +77,14 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
-    folders: Mapped[list["Folder"]] = relationship(
-        back_populates="owner",
+    # folders: Mapped[list["Folder"]] = relationship(
+    #     back_populates="owner",
+    #     cascade="all, delete-orphan",
+    # )
+    
+    folders = relationship(
+        "Folder",
+        back_populates="user",
         cascade="all, delete-orphan",
     )
     

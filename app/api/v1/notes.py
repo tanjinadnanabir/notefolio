@@ -17,11 +17,16 @@ from app.schemas.note import (
     NoteResponse,
     NoteListResponse,
     NoteUpdate,
+    TrashNoteResponse,
 )
 from app.services.note import (
     create_note,
+    get_deleted_note,
     get_note,
     list_notes,
+    list_trash,
+    permanently_delete_note,
+    restore_note,
     update_note,
     delete_note,
 )
@@ -31,6 +36,25 @@ router = APIRouter(
     prefix="/notes",
     tags=["Notes"],
 )
+
+
+# @router.post(
+#     "",
+#     response_model=NoteResponse,
+#     status_code=status.HTTP_201_CREATED,
+# )
+# def create_new_note(
+#     note_data: NoteCreate,
+#     current_user: User = Depends(
+#         get_current_user
+#     ),
+#     db: Session = Depends(get_db),
+# ):
+#     return create_note(
+#         db,
+#         current_user.id,
+#         note_data,
+#     )
 
 
 @router.post(
@@ -45,11 +69,18 @@ def create_new_note(
     ),
     db: Session = Depends(get_db),
 ):
-    return create_note(
-        db,
-        current_user.id,
-        note_data,
-    )
+    try:
+        return create_note(
+            db,
+            current_user.id,
+            note_data,
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        )
     
 
 @router.get(
@@ -98,6 +129,22 @@ def get_notes(
         page=page,
         page_size=page_size,
         pages=pages,
+    )
+    
+    
+@router.get(
+    "/trash",
+    response_model=list[TrashNoteResponse],
+)
+def get_trash(
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    return list_trash(
+        db,
+        current_user.id,
     )
     
     
@@ -182,6 +229,66 @@ def delete_existing_note(
         )
 
     delete_note(
+        db,
+        note,
+    )
+
+    return None
+
+
+@router.post(
+    "/{note_id}/restore",
+    response_model=NoteResponse,
+)
+def restore_deleted_note(
+    note_id: uuid.UUID,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    note = get_deleted_note(
+        db,
+        note_id,
+        current_user.id,
+    )
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deleted note not found.",
+        )
+
+    return restore_note(
+        db,
+        note,
+    )
+    
+    
+@router.delete(
+    "/{note_id}/permanent",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def permanently_delete_existing_note(
+    note_id: uuid.UUID,
+    current_user: User = Depends(
+        get_current_user
+    ),
+    db: Session = Depends(get_db),
+):
+    note = get_deleted_note(
+        db,
+        note_id,
+        current_user.id,
+    )
+
+    if note is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Deleted note not found.",
+        )
+
+    permanently_delete_note(
         db,
         note,
     )

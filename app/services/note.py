@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.note import Note
 from app.schemas.note import NoteCreate, NoteUpdate
 
+from app.services.folder import get_folder
 
 def generate_excerpt(
     content: str,
@@ -26,11 +27,48 @@ def generate_excerpt(
     return text[:max_length].rstrip() + "..."
 
 
+# def create_note(
+#     db: Session,
+#     user_id: uuid.UUID,
+#     note_data: NoteCreate,
+# ) -> Note:
+
+#     note = Note(
+#         user_id=user_id,
+#         folder_id=note_data.folder_id,
+#         title=note_data.title,
+#         content=note_data.content,
+#         excerpt=generate_excerpt(
+#             note_data.content
+#         ),
+#         color=note_data.color,
+#     )
+
+#     db.add(note)
+#     db.commit()
+#     db.refresh(note)
+
+#     return note
+
+
 def create_note(
     db: Session,
     user_id: uuid.UUID,
     note_data: NoteCreate,
 ) -> Note:
+
+    if note_data.folder_id is not None:
+
+        folder = get_folder(
+            db,
+            note_data.folder_id,
+            user_id,
+        )
+
+        if folder is None:
+            raise ValueError(
+                "Folder not found."
+            )
 
     note = Note(
         user_id=user_id,
@@ -48,6 +86,7 @@ def create_note(
     db.refresh(note)
 
     return note
+
 
 def get_note(
     db: Session,
@@ -161,4 +200,62 @@ def delete_note(
         timezone.utc
     )
 
+    db.commit()
+    
+    
+def list_trash(
+    db: Session,
+    user_id: uuid.UUID,
+) -> list[Note]:
+
+    statement = (
+        select(Note)
+        .where(
+            Note.user_id == user_id,
+            Note.deleted_at.is_not(None),
+        )
+        .order_by(
+            Note.deleted_at.desc()
+        )
+    )
+
+    return list(
+        db.scalars(statement).all()
+    )
+    
+    
+def restore_note(
+    db: Session,
+    note: Note,
+) -> Note:
+
+    note.deleted_at = None
+
+    db.commit()
+    db.refresh(note)
+
+    return note
+
+
+def get_deleted_note(
+    db: Session,
+    note_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> Note | None:
+
+    statement = select(Note).where(
+        Note.id == note_id,
+        Note.user_id == user_id,
+        Note.deleted_at.is_not(None),
+    )
+
+    return db.scalar(statement)
+
+
+def permanently_delete_note(
+    db: Session,
+    note: Note,
+) -> None:
+
+    db.delete(note)
     db.commit()

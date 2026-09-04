@@ -1,8 +1,7 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
-    app_name: str = "NoteFlow"
+    app_name: str = "NoteFolio"
     app_env: str = "development"
     debug: bool = True
 
@@ -17,6 +16,5 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
-
 
 settings = Settings()

@@ -1,9 +1,18 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import (
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    func,
+)
+from sqlalchemy.orm import (
+    Mapped,
+    mapped_column,
+    relationship,
+)
 
 from app.db.database import Base
 
@@ -12,15 +21,25 @@ class Folder(Base):
     __tablename__ = "folders"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
     )
 
-    owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("users.id", ondelete="CASCADE"),
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(
+            "users.id",
+            ondelete="CASCADE",
+        ),
         nullable=False,
+        index=True,
+    )
+
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey(
+            "folders.id",
+            ondelete="CASCADE",
+        ),
+        nullable=True,
         index=True,
     )
 
@@ -30,7 +49,12 @@ class Folder(Base):
     )
 
     description: Mapped[str | None] = mapped_column(
-        String(500),
+        Text,
+        nullable=True,
+    )
+
+    color: Mapped[str | None] = mapped_column(
+        String(30),
         nullable=True,
     )
 
@@ -47,14 +71,23 @@ class Folder(Base):
         nullable=False,
     )
 
-    owner: Mapped["User"] = relationship(
+    user = relationship(
+        "User",
         back_populates="folders",
     )
 
-    # notes: Mapped[list["Note"]] = relationship(
-    #     back_populates="folder",
-    # )
-    
+    parent = relationship(
+        "Folder",
+        remote_side=[id],
+        back_populates="children",
+    )
+
+    children = relationship(
+        "Folder",
+        back_populates="parent",
+        cascade="all, delete-orphan",
+    )
+
     notes = relationship(
         "Note",
         back_populates="folder",
